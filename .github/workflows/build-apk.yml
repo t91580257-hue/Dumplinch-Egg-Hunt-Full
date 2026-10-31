@@ -4,9 +4,6 @@ name: Build Dumplinch Egg Hunt APK
 on:
   workflow_dispatch:
   push:
-    paths:
-      - 'Dumplinch-Full-Project.zip'
-      - '.github/workflows/build-apk.yml'
 
 jobs:
   build:
@@ -16,52 +13,59 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install unzip
-        run: sudo apt-get update && sudo apt-get install -y unzip wget
-
-      - name: Extract game project
-        run: |
-          mkdir -p game_src
-          unzip -q dumplinch-egg-hunt.zip -d game_src
-          PROJECT_FILE=$(find game_src -name project.godot -print -quit)
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "ERROR: project.godot not found in ZIP"
-            exit 1
-          fi
-          echo "PROJECT_DIR=$(dirname "$PROJECT_FILE")" >> "$GITHUB_ENV"
-
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-       - name: Set up Android SDK
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools'
+          packages: platform-tools
 
       - name: Install Android SDK packages
         run: |
-          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Download Godot 4.3
+      - name: Install unzip and wget
+        run: sudo apt-get update && sudo apt-get install -y unzip wget
+
+      - name: Extract game project
+        run: |
+          mkdir -p game_src
+          ZIP_FILE=$(find . -maxdepth 1 -type f -iname "*.zip" | head -n 1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ZIP archive not found"
+            ls -la
+            exit 1
+          fi
+          echo "Found: $ZIP_FILE"
+          unzip -q "$ZIP_FILE" -d game_src
+          PROJECT_FILE=$(find game_src -name project.godot -print -quit)
+          if [ -z "$PROJECT_FILE" ]; then
+            echo "project.godot not found"
+            exit 1
+          fi
+          echo "PROJECT_DIR=$(dirname "$PROJECT_FILE")" >> "$GITHUB_ENV"
+
+      - name: Download Godot
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
           unzip -q Godot_v4.3-stable_linux.x86_64.zip
           chmod +x Godot_v4.3-stable_linux.x86_64
           sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
 
-      - name: Install Godot export templates
+      - name: Install export templates
         run: |
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
           unzip -q Godot_v4.3-stable_export_templates.tpz -d /tmp/godot-templates
           cp -r /tmp/godot-templates/templates/* ~/.local/share/godot/export_templates/4.3.stable/
 
-      - name: Import game resources
-        run: |
-          godot --headless --editor --path "$PROJECT_DIR" --import
+      - name: Import resources
+        run: godot --headless --editor --path "$PROJECT_DIR" --import
 
       - name: Build Android APK
         run: |
@@ -74,3 +78,4 @@ jobs:
           name: Dumplinch-Egg-Hunt-Android
           path: build/DumplinchEggHunt.apk
           if-no-files-found: error
+
