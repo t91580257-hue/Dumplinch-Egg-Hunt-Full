@@ -22,7 +22,7 @@ jobs:
       - name: Extract game project
         run: |
           mkdir -p game_src
-          unzip -q Dumplinch-Full-Project.zip -d game_src
+          unzip -q dumplinch-egg-hunt.zip -d game_src
           PROJECT_FILE=$(find game_src -name project.godot -print -quit)
           if [ -z "$PROJECT_FILE" ]; then
             echo "ERROR: project.godot not found in ZIP"
