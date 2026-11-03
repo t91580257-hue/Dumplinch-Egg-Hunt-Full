@@ -60,6 +60,9 @@ jobs:
             exit 1
           fi
           echo "PROJECT_DIR=$(dirname "$PROJECT_FILE")" >> "$GITHUB_ENV"
+           - name: Fix project file permissions
+        run: |
+          chmod -R u+rwX "$PROJECT_DIR"
 
       - name: Configure Android signing
         env:
